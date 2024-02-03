@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Attendence Transform</title>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.13.5/jszip.js"></script>
+        <script type="text/javascript" src="https://unpkg.com/xlsx@0.15.1/dist/xlsx.full.min.js"></script>
+        <style>
+            .container {width: 676px;display: flex;flex-direction: column;justify-content: center;align-items: center;margin: 0 auto;}
+            .file-input { display: none; }
+            .custom-button {width: 200px; margin-top: 20px;  background-color: #4CAF50;color: white;padding: 10px 20px;border: none;cursor: pointer;border-radius: 5px;}
+            .custom-button-label { width: 85%; padding:8px 20px;background-color: #6db96f;color: white;border-radius: 5px;cursor: pointer;display: inline-block;}
+            .custom-button-label:hover {background-color: #45a049;}
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <input type="file" class="file-input" id="fileUpload">
+            <label for="fileUpload" class="custom-button-label">Choose File</label>
+            <button class="custom-button" onclick="handleMagic()">Apply Magic</button>
+        </div>
+    </body>
+
+    <script>
+        
+        if(!Object.keys(XLSX).length) {
+            alert("Something went wrong priyal, refresh page again!")
+        }
+
+        const handleMagic = () => {
+            var fileUpload = document.getElementById("fileUpload");
+            var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xls|.xlsx)$/;
+            if (regex.test(fileUpload.value.toLowerCase())) {
+                if (typeof (FileReader) != "undefined") {
+                    var reader = new FileReader();
+                    //For Browsers other than IE.
+                    if (reader.readAsBinaryString) {
+                        reader.onload = function (e) {
+                            ProcessExcel(e.target.result);
+                        };
+                        reader.readAsBinaryString(fileUpload.files[0]);
+                    } else {
+                        //For IE Browser.
+                        reader.onload = function (e) {
+                            var data = "";
+                            var bytes = new Uint8Array(e.target.result);
+                            for (var i = 0; i < bytes.byteLength; i++) {
+                                data += String.fromCharCode(bytes[i]);
+                            }
+                            ProcessExcel(data);
+                        };
+                        reader.readAsArrayBuffer(fileUpload.files[0]);
+                    }
+                } else {
+                    alert("This browser does not support HTML5.");
+                }
+            } else {
+                alert("Please upload a valid Excel file.");
+            }
+        }
+
+        const insertRow = (row) => {
+            const time = row['Time'].split(' ')[1]
+            return `\n ${row['Name']} \t ${time}`
+        }
+        
+        const ProcessExcel = (data) => {
+            var workbook = XLSX.read(data, {
+                type: 'binary'
+            });
+
+            var firstSheet = workbook.SheetNames[0];
+            var excelRows = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[firstSheet], {raw: false});
+
+            let message = "\n Name \t Time";
+            let newUser = true
+            for(i=0; i< excelRows.length; i++) {
+                if(excelRows[i]?.['Name'] !== excelRows[i+1]?.['Name']) {
+                    newUser = true
+                    message += insertRow(excelRows[i])
+                } else if (newUser === true) {
+                    message += insertRow(excelRows[i])
+                    newUser = false
+                } else {
+                    newUser = false
+                }
+            }
+            window.open('data:application/vnd.ms-excel,' + message);
+        }
+    </script>
+</html>
